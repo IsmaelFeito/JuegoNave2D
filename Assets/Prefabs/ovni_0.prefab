@@ -14,6 +14,7 @@ GameObject:
   - component: {fileID: 5973756873813929497}
   - component: {fileID: -7061462535404445403}
   - component: {fileID: 753594726749614862}
+  - component: {fileID: -9152933644149273454}
   m_Layer: 0
   m_Name: ovni_0
   m_TagString: UFO
@@ -343,3 +344,17 @@ PolygonCollider2D:
       - {x: 0.85999995, y: -0.38}
       - {x: 0.97999996, y: -0.29}
   m_UseDelaunayMesh: 0
+--- !u!114 &-9152933644149273454
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3867353111772125962}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dfbeb4f1af3a76bd0b8157aacc61fef8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::UFOController
+  normalSpeed: 3
+  magnetAttractionSpeed: 8
