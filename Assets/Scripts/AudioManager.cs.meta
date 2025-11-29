@@ -1,0 +1,18 @@
+fileFormatVersion: 2
+guid: eb1c911f947cff32f8be6faf309c114f
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - musicaMenuPrincipal: {fileID: 8300000, guid: b890a6bde12388052ac974d1b87e0553, type: 3}
+  - musicaJuegoPrincipal: {fileID: 8300000, guid: c778f932ad73751278ae4fb4f105dfed, type: 3}
+  - musicaPausa: {fileID: 8300000, guid: b890a6bde12388052ac974d1b87e0553, type: 3}
+  - efectoExplosionAsteroide: {fileID: 8300000, guid: ece0cc16b3fc7857d849c9a8ec92736e, type: 3}
+  - efectoClickBoton: {fileID: 8300000, guid: 11f548fc6791b850280f58fb58d9bda6, type: 3}
+  - musicaFondoSource: {instanceID: 0}
+  - efectosSonidoSource: {instanceID: 0}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

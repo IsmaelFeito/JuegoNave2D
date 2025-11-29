@@ -5,25 +5,47 @@ using UnityEngine.SceneManagement;
 
 public class ColisionNave : MonoBehaviour
 {
-    [Header("UI References")]
+    [Header("UI del Juego")]
     public TMP_Text textoVidas;
     public TMP_Text contadorPuntosTexto;
     public Slider healthBarSlider;
     
-    [Header("Menú Fin de Partida")]
+    [Header("Menú de Fin de Partida")]
     public GameObject menuFinPartida;
-    public TMP_Text puntuacionFinalTexto;
+    public TMP_Text textoPuntuacionFinal;
+    public TMP_Text textoNombreJugador;
+    public TMP_Text textoMejoresPuntuaciones;
     
-    [Header("Configuración de Vida")]
+    [Header("Sistema de Partículas")]
+    public ParticleSystem explosionEffect;
+    
+    [Header("Configuración")]
     public int maxHealth = 100;
     private int currentHealth;
     private int vidas = 3;
     private int contadorPuntos = 0;
-    private bool juegoActivo = true;
+    public bool juegoActivo = true;
+
+    [Header("Dificultad")]
+    private DifficultySettings configuracionDificultad;
 
     void Start()
     {
-        // Inicializar vida y UI
+        // Asegurar que existe el ScoreManager
+        AsegurarScoreManager();
+
+        CargarConfiguracionDificultad();
+        vidas = configuracionDificultad.vidasIniciales;
+        maxHealth = configuracionDificultad.vidaJugador;
+        currentHealth = maxHealth;
+        
+        // Verificación de partículas
+        if (explosionEffect == null)
+        {
+            Debug.LogWarning("⚠️ ExplosionEffect no está asignado.");
+        }
+        
+        // Inicialización normal
         currentHealth = maxHealth;
         ActualizarBarraVida();
         ActualizarTextoVidas();
@@ -32,36 +54,122 @@ public class ColisionNave : MonoBehaviour
         if (contadorPuntosTexto != null)
             contadorPuntosTexto.text = "PUNTOS: " + contadorPuntos;
             
-        // Ocultar menú de fin de partida
         if (menuFinPartida != null)
             menuFinPartida.SetActive(false);
     }
 
-    // MÉTODOS PARA LA BARRA DE VIDA (los que ya tienes)
+    private void CargarConfiguracionDificultad()
+    {
+        if (DifficultyManager.Instance != null)
+        {
+            configuracionDificultad = DifficultyManager.Instance.GetConfiguracionActual();
+            Debug.Log($"🎮 Dificultad cargada: {DifficultyManager.Instance.GetDificultadActual()}");
+        }
+        else
+        {
+            // Configuración por defecto
+            configuracionDificultad = new DifficultySettings();
+            Debug.LogWarning("⚠️ Usando dificultad por defecto");
+        }
+    }
+
+    // NUEVO MÉTODO: Asegurar que el ScoreManager existe
+    private void AsegurarScoreManager()
+    {
+        if (ScoreManager.Instance == null)
+        {
+            Debug.Log("📊 Creando ScoreManager...");
+            GameObject scoreObj = new GameObject("ScoreManager");
+            scoreObj.AddComponent<ScoreManager>();
+            
+            // Verificar que se creó correctamente
+            if (ScoreManager.Instance != null)
+            {
+                Debug.Log("✅ ScoreManager creado exitosamente");
+            }
+            else
+            {
+                Debug.LogError("❌ Fallo al crear ScoreManager");
+            }
+        }
+        else
+        {
+            Debug.Log("✅ ScoreManager ya existe");
+        }
+    }
+
+    // MÉTODO MEJORADO para el ranking
+    private string ObtenerTextoMejoresPuntuaciones()
+    {
+        // Verificar que el ScoreManager existe
+        if (ScoreManager.Instance == null)
+        {
+            Debug.LogError("❌ ScoreManager no disponible");
+            return "Sistema de ranking no disponible\n\nPuntuación actual: " + contadorPuntos;
+        }
+        
+        // Obtener las puntuaciones
+        var mejores = ScoreManager.Instance.ObtenerMejoresPuntuaciones();
+        
+        if (mejores == null || mejores.Count == 0)
+        {
+            return "No hay puntuaciones guardadas\n\n¡Sé el primero!";
+        }
+        
+        // Construir el texto del ranking
+        string texto = "🏆 RANKING ACTUAL\n";
+        texto += "----------------\n";
+        
+        for (int i = 0; i < mejores.Count; i++)
+        {
+            string nombre = string.IsNullOrEmpty(mejores[i].nombre) ? "Jugador" : mejores[i].nombre;
+            texto += $"{i + 1}. {nombre}: {mejores[i].puntuacion} pts\n";
+        }
+        
+        return texto;
+    }
+
+    // EL RESTO DE TUS MÉTODOS SE MANTIENEN IGUAL...
+    private void PlayExplosionEffect(Vector3 position)
+    {
+        if (explosionEffect != null)
+        {
+            ParticleSystem explosion = Instantiate(explosionEffect, position, Quaternion.identity);
+            explosion.Play();
+            Destroy(explosion.gameObject, explosion.main.duration + 0.5f);
+        }
+    }
+
+    public void OnTriggerEnter2D(Collider2D collision)
+    {
+        if (!juegoActivo) return;
+        
+        if (collision.CompareTag("UFO"))
+        {
+            int puntos = configuracionDificultad.puntosPorUFO;
+            SumarPuntos(1);
+            Destroy(collision.gameObject, 0.1f);
+        }
+        else if (collision.CompareTag("Asteroid"))
+        {
+            int dano = configuracionDificultad.danoAsteroide;
+            RecibirDano(34);
+            
+            if (AudioManager.Instance != null)
+            {
+                AudioManager.Instance.ReproducirExplosionAsteroide();
+            }
+            
+            PlayExplosionEffect(collision.transform.position);
+            Destroy(collision.gameObject, 0.2f);
+        }
+    }
+
     private void ActualizarBarraVida()
     {
         if (healthBarSlider != null)
         {
             healthBarSlider.value = currentHealth;
-            ActualizarColorBarraVida();
-        }
-    }
-    
-    private void ActualizarColorBarraVida()
-    {
-        if (healthBarSlider == null) return;
-        
-        float healthPercent = (float)currentHealth / maxHealth;
-        Image fillImage = healthBarSlider.fillRect.GetComponent<Image>();
-        
-        if (fillImage != null)
-        {
-            if (healthPercent > 0.6f)
-                fillImage.color = Color.green;
-            else if (healthPercent > 0.3f)
-                fillImage.color = Color.yellow;
-            else
-                fillImage.color = Color.red;
         }
     }
     
@@ -71,7 +179,6 @@ public class ColisionNave : MonoBehaviour
         
         currentHealth -= dano;
         if (currentHealth < 0) currentHealth = 0;
-        
         ActualizarBarraVida();
         
         if (currentHealth <= 0)
@@ -96,49 +203,75 @@ public class ColisionNave : MonoBehaviour
         }
     }
 
-    // NUEVO: MÉTODO PARA FIN DEL JUEGO
     private void FinDelJuego()
     {
         juegoActivo = false;
-        
-        // Parar el tiempo del juego
         Time.timeScale = 0f;
         
-        // Mostrar menú de fin de partida
+        Debug.Log("🎮 Fin del juego - Guardando puntuación: " + contadorPuntos);
+        
+        // Guardar la puntuación
+        if (ScoreManager.Instance != null)
+        {
+            ScoreManager.Instance.GuardarPuntuacion(contadorPuntos);
+            Debug.Log("✅ Puntuación guardada en ScoreManager");
+        }
+        else
+        {
+            Debug.LogError("❌ No se pudo guardar la puntuación - ScoreManager es null");
+        }
+        
         if (menuFinPartida != null)
         {
             menuFinPartida.SetActive(true);
-            
-            // Actualizar texto de puntuación final
-            if (puntuacionFinalTexto != null)
-                puntuacionFinalTexto.text = contadorPuntos.ToString();
+            ActualizarMenuFinPartida();
         }
-        
-        Debug.Log("JUEGO TERMINADO - Puntuación: " + contadorPuntos);
     }
 
-    // MÉTODOS PARA LOS BOTONES
+    private void ActualizarMenuFinPartida()
+    {
+        // Puntuación actual
+        if (textoPuntuacionFinal != null)
+            textoPuntuacionFinal.text = $"Puntuación: {contadorPuntos}";
+        
+        // Nombre y edad del jugador
+        string nombre = PlayerPrefs.GetString("NombreJugador", "Jugador");
+        string edad = PlayerPrefs.GetString("EdadJugador", "0");
+        
+        if (textoNombreJugador != null)
+            textoNombreJugador.text = $"{nombre} ({edad} años)";
+        
+        // Mejores puntuaciones
+        if (textoMejoresPuntuaciones != null)
+        {
+            string rankingTexto = ObtenerTextoMejoresPuntuaciones();
+            textoMejoresPuntuaciones.text = rankingTexto;
+            Debug.Log("📋 Texto del ranking:\n" + rankingTexto);
+        }
+    }
+
     public void ReiniciarPartida()
     {
-        // Reanudar el tiempo
+        ReproducirSonidoBoton();
         Time.timeScale = 1f;
-        
-        // Recargar la escena actual
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+        SceneManager.LoadScene("JuegoPrincipal");
     }
     
     public void IrAlMenuPrincipal()
     {
-        // Reanudar el tiempo antes de cambiar de escena
+        ReproducirSonidoBoton();
         Time.timeScale = 1f;
-        
-        // Cargar la escena del menú principal (asegúrate de que existe)
-        // SceneManager.LoadScene("MenuPrincipal");
-        // O si no tienes menú principal, recarga la escena actual:
-        SceneManager.LoadScene(0); // Escena 0 = menú principal
+        SceneManager.LoadScene("MenuPrincipal");
     }
 
-    // Tus métodos existentes...
+    private void ReproducirSonidoBoton()
+    {
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.ReproducirClickBoton();
+        }
+    }
+
     private string generarTextoVidas(int vidas)
     {
         if (vidas <= 0) return "<//3";
@@ -161,21 +294,5 @@ public class ColisionNave : MonoBehaviour
         contadorPuntos += puntos;
         if (contadorPuntosTexto != null)
             contadorPuntosTexto.text = "PUNTOS: " + contadorPuntos;
-    }
-
-    public void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (!juegoActivo) return;
-        
-        if (collision.CompareTag("UFO"))
-        {
-            SumarPuntos(1);
-            Destroy(collision.gameObject);
-        }
-        else if (collision.CompareTag("Asteroid"))
-        {
-            RecibirDano(34);
-            Destroy(collision.gameObject);
-        }
     }
 }
