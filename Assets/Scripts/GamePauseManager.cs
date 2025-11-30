@@ -104,6 +104,17 @@ public class GamePauseManager : MonoBehaviour
         SceneManager.LoadScene("MenuDificultad");
     }
 
+    public void IrAMenuDatos()
+    {
+        ReproducirSonidoBoton();
+        
+        // Reanudar el tiempo antes de cambiar de escena
+        Time.timeScale = 1f;
+        
+        Debug.Log("🎯 Cambiando dificultad desde pausa...");
+        SceneManager.LoadScene("MenuDatos");
+    }
+
     public void IrAlMenuPrincipal()
     {
         ReproducirSonidoBoton();
